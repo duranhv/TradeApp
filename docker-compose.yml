@@ -1,0 +1,124 @@
+version: "3.9"
+
+services:
+  # ── Base de Datos ─────────────────────────────────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: tradeapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tradeapp
+      POSTGRES_USER: tradeapp
+      POSTGRES_PASSWORD: tradeapp_dev_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradeapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: tradeapp-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: tradeapp-backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://tradeapp:tradeapp_dev_pass@postgres:5432/tradeapp
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Celery Worker ─────────────────────────────────────────────────────────
+  celery-worker:
+    build: ./backend
+    container_name: tradeapp-celery-worker
+    restart: unless-stopped
+    env_file: .env
+    command: celery -A app.workers.tasks worker --loglevel=info --concurrency=4
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+      - redis
+    environment:
+      DATABASE_URL: postgresql+asyncpg://tradeapp:tradeapp_dev_pass@postgres:5432/tradeapp
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+  # ── Celery Beat (Scheduler) ───────────────────────────────────────────────
+  celery-beat:
+    build: ./backend
+    container_name: tradeapp-celery-beat
+    restart: unless-stopped
+    env_file: .env
+    command: celery -A app.workers.tasks beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - celery-worker
+
+  # ── Frontend (Next.js) ────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: tradeapp-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ── Nginx (Reverse Proxy) ─────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: tradeapp-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  redis_data:

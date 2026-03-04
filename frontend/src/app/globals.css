@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    /* Custom financial colors */
+    --bull: 142.1 76.2% 36.3%;      /* Verde para subidas */
+    --bear: 346.8 77.2% 49.8%;      /* Rojo para bajas */
+    --neutral: 215.4 16.3% 46.9%;
+
+    /* Signal colors */
+    --signal-strong-buy: 142 76% 36%;
+    --signal-buy: 142 69% 58%;
+    --signal-neutral: 47 96% 53%;
+    --signal-sell: 25 95% 53%;
+    --signal-strong-sell: 0 84% 60%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --bull: 142.1 70.6% 45.3%;
+    --bear: 346.8 77.2% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Financial table styles */
+.price-up { @apply text-green-600 dark:text-green-400 font-medium; }
+.price-down { @apply text-red-600 dark:text-red-400 font-medium; }
+.price-neutral { @apply text-gray-500 dark:text-gray-400; }
+
+/* Signal badge styles */
+.signal-strong-buy  { @apply bg-green-600 text-white; }
+.signal-buy         { @apply bg-green-400 text-white; }
+.signal-neutral     { @apply bg-yellow-400 text-gray-900; }
+.signal-sell        { @apply bg-orange-500 text-white; }
+.signal-strong-sell { @apply bg-red-600 text-white; }
